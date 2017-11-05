@@ -26,7 +26,7 @@ There are at many ways to deal with the asynchronous issues arising from the int
 ## Approach One:  Coordinate using a data structure
 
 Consider the fragment below which should look very similar to `show-databases.js` from the last lab:
-```{js}
+```js
 ... stuff left out ...
 var connection = mysql.createConnection(credentials);
 var data={};
@@ -48,9 +48,9 @@ We begin the program similarly to what we did in the last lab by setting up the 
 
 Our logic is particularly simple-- if there is an error, report it and close the connection.  Otherwise our query has returned an array of objects which we will deal with in the function `processDBFs` (discussed below).
 
-Let's look at how `processDBFs` works: 
+Let's look at how `processDBFs` works:
 
-```{js}
+```js
 function processDBFs(dbfs){ // Asynchronous row handler
      for(var index in dbfs){
        var dbf = dbfs[index].Database;
@@ -73,7 +73,7 @@ The variable `dbfs` is an array of objects containing database names.  The outer
 
 For each database we want to execute a query of the form `SHOW TABLES IN DBF`.  Setting up this query should look similar to what we did when we were running SHOW DATABASES-- we create a callback function to be executed when the quey is completed.  But there is one very, important difference that makes everything work.  Look closely at what is being done:
 
-```{js}
+```js
         connection.query(sql, (function(dbf){
           return function(err,tables,fields){
             #function body
@@ -82,14 +82,14 @@ For each database we want to execute a query of the form `SHOW TABLES IN DBF`.  
 ```
 
 The callback function is **created** inside `processDBFs`.  This chunk of code:
-```{js}
+```js
 (function(dbf){
           return function(err,tables,fields){
             #function body
         })(dbf)
 ```
 Executes an anonymous function that takes `dbf` as an argument and returns a function, namely the interior function:
-```{js}
+```js
 function(err,tables,fields){
     #function body
 }
@@ -101,7 +101,7 @@ This is important.  The innermost function is defined *inside* the anonymous fun
 
 In a similar fashion each table can now be processed by a function.  Note the similar **callback construction** approach, and how all the local values are handed off to `processDescription(desc,table,dbf)` for final printing:
 
-```{js}
+```js
 function processTables(tables,dbf){ // Asynchronous row handler
     data[dbf] = tables.length; // Now it is set.
     processed[dbf] = 0;        // And has not yet been used as a label.
@@ -128,7 +128,7 @@ Here we finally set the `dbf` entry in `data` to be the number of tables in the 
 
 This is all fine and dandy... but we still need to print out actual results and close the connection when we are done.  This is handled by `processDescription`:
 
-```{js}
+```js
 function processDescription(desc,table,dbf){
   data[dbf]--; //Processed one table
   if(processed[dbf]==0){
@@ -148,7 +148,7 @@ This function does all the printing.  It starts by decreases the table count in 
 
 Regardless it prints the description of a table.  The only thing left is to shut down the connection when every table has had its description printed.  The function `allZero` returns `true` if every value in `data` is 0, otherwise it returns `false`:
 
-```{js}
+```js
 function allZero(object){
   allzero = true;
   for(obj in object){
@@ -184,7 +184,7 @@ Remember that a Promise is a placeholder for a value-- a value that is the end r
 
 We can also **chain** promises together using `.then()`.  This allows the programmer to introduce causal steps and deal with dependency issues.  This will make more sense after the examples below.  Try this short one first:
 
-```{js}
+```js
 Promise=require('bluebird');
 
 var promise= new Promise(function(resolve,reject){
@@ -208,14 +208,14 @@ Inside onFulfilled handler
 
 So what is happening?  Bluebird is one of several promise APIs.  Somewhat similar to an `import` command in Java, we load it using `require`:  
 
-```{js}
+```js
 Promise=require('bluebird');
 ```
 
 The variable `Promise` exposes all the functionality of the bluebird API (we could have called it whatever we wanted).  
 The variable `promise` (notice the lower case p) is created using `new` and a constructor called `Promise()`.  This constructor expect a function that takes two arguments-- `resolve` and `reject`-- both functions in their own right (it's getting kind of meta isn't it?).  We pass the constructor just such an anonymous function:
 
-```{js}
+```js
 function(resolve,reject){
   console.log('Inside resolver function');
   resolve();
@@ -227,7 +227,7 @@ This function runs immediately (it is a **synchronous** call). And we get our fi
 Because `resolve()` is asynchronous it immediately returns (and it will return a promise object).  The function `resolve()` is now queued up, and will be run AFTER the main thread of execution is completed (because of the "run until completion motto" enjoyed by javaScript and node.js).   Eventually `resolve()` will attempt to resolve anything *hanging off* that original promise.  At this point however, no handlers have been attached to the promise, and there are no additional promises attached to it.  This is the beauty of making `resolve()` asynchronous-- the rest of the program now has time to assign handlers.
 
 So we get to the next chunk in the code:
-```{js}
+```js
 promise.then(function(){
   console.log('Inside onFulfilled handler');
 });
@@ -242,7 +242,7 @@ Now `resolve()` can run.  Because it had to wait until the end of our current th
 
 In general we would set up our initial promise like this:
 
-```{js}
+```js
 var promise = new Promise(function(resolve, reject) {
   // do a thing, possibly async, then…
 
@@ -260,7 +260,7 @@ The `.then()` method expects either a Promise object or a callback function (mor
 
 Let's review our original `showDatabases.js` program:
 
-```{js}
+```js
 var credentials = require('./credentials.json');
 
 var mysql=require("mysql");
@@ -293,7 +293,7 @@ We are going to start by modifying this example to make use `connection.pool()`s
 2. This approach will scale better to larger projects that might require multiple concurrent connections.
 3. Creating a new connection helps insulate the user from fragile connections (connections can break)
 
-```{js}
+```js
 var credentials = require('./credentials.json');
 var mysql=require("mysql");
 credentials.host="ids"
@@ -324,7 +324,7 @@ In our example, this is major over-kill and something of a waste of time since i
 
 Now we're going to add in promises.  There are some new ideas floating around in this next example, so be sure to type up the next example before continuing:
 
-```{js}
+```js
 var credentials = require('./credentials.json');
 
 var mysql=require("mysql");
@@ -356,7 +356,7 @@ result.then(function(dbfs,err){console.log(dbfs)}).then(function(){pool.end()});
 
 The first *weird* thing in the code up above is (somewhat abridged) some of the *Promise* parts:
 
-```{js}
+```js
 var Promise = require('bluebird');
 Promise.promisifyAll(require("mysql/lib/Connection").prototype);
 Promise.promisifyAll(require("mysql/lib/Pool").prototype);
@@ -367,7 +367,7 @@ The first line is clear:  We are using the promise library known as `bluebird`. 
 ### Connection pools and promises
 
 Things are a bit nicer now:
-```{js}
+```js
 var pool=mysql.createPool(credentials); //Setup the pool using our credentials.
 
 var getConnection=function(){
@@ -381,7 +381,7 @@ The `.disposer()` method is part of `bluebird`.  It is guaranteed to run after t
 
 Now look at where `getConnection()` is being used:
 
-```{js}
+```js
 var query=function(command){
     return using(getConnection(),function(connection){
        return connection.queryAsync(command);
@@ -393,7 +393,7 @@ The `query()` method is using `using` (which is discussed in that last link I pr
 
 We are finally in a position to understand the *meat of the function*:
 
-```{js}
+```js
 var result=query(mysql.format(sql)) //result is a promise
 result.then(function(dbfs,err){console.log(dbfs)}).then(function(){pool.end()});
 ```
@@ -407,7 +407,7 @@ I would like to clean things up a bit to show how much more readable Promises ca
 
 First, create a file called `dbf-setup.js` and make certain it is in the same directory as your `credentials.json` file.  Here is what `dbf-setup.js` should contain:
 
-```{js}
+```js
 var credentials = require('./credentials.json');
 
 var mysql=require("mysql");
@@ -444,7 +444,7 @@ We are defining a module.  Node.js allows you to use the `require` function to i
 
 With that functionality wrapped up in a module the remaining code necessary to implement "SHOW DATABASES" is fairly short.  I have added TWO complications in preparation for the final version of the program however, so read carefully:
 
-```{js}
+```js
 mysql=require('mysql');
 dbf=require('./dbf-setup.js');
 
@@ -466,7 +466,7 @@ dbf=getDatabases()
 
 It is a waste to do so little work in `processDBFS`, but I wanted to point out something very important.  Each `.then()` method is returning a Promise, and by putting the `.then()`'s in order we are forcing the callback to be executed in our desired order.  The key thing to notice lives here:
 
-```{js}
+```js
 .then(processDBFs)
 .then(function(results){console.log(results)})
 ```
@@ -481,7 +481,7 @@ For this solution we are going to take advantage of **[prepared statements ](htt
 
 Here is my solution involving Promises and prepared statements.  My Promise-Fu is still quite weak, so there are, undoubtedly, ways to do this even more cleanly.  Youl should all type this program in yourselves:
 
-```{js}
+```js
 Promise=require('bluebird')
 mysql=require('mysql');
 DBF=require('./dbf-setup.js');
@@ -502,9 +502,9 @@ var processTables=function(results){ //Returns a promise that forces ALL table d
   return(allTables);
 }
 
-//Takes an object (as returned by showDatabases) and returns a promise that resolves 
+//Takes an object (as returned by showDatabases) and returns a promise that resolves
 // to an array of objects containing table names for the dbf in dbfObj
-var dbfToPromise=function(dbfObj){ 
+var dbfToPromise=function(dbfObj){
   var dbf=dbfObj.Database
   var sql = mysql.format("SHOW TABLES IN ??",dbf);
   var queryPromise=DBF.query(sql)
@@ -512,7 +512,7 @@ var dbfToPromise=function(dbfObj){
   return(queryPromise);
 }
 
-//Takes an object (as returned by showDatabases) and returns a promise that resolves 
+//Takes an object (as returned by showDatabases) and returns a promise that resolves
 // to an array of objects containing table descriptions.  
 // This function creates helper functions:
 //     describeTable()
@@ -586,7 +586,7 @@ Instead of diving head-first into the problem we will start simply and work our 
 
 We will start by using a node.js package known as `express.js` to create a very simple web server for our web pages (read a few paragraphs ahead **before** running this):
 
-```{js}
+```js
 var express=require('express'),
 app = express(),
 port = process.env.PORT || 1337;
@@ -595,23 +595,23 @@ app.use(express.static(__dirname + '/public'));
 app.listen(port);
 ```
 
-The web-server is expecting our HTML files to be in the `public` sub directory.  Go ahead and 
+The web-server is expecting our HTML files to be in the `public` sub directory.  Go ahead and
 
-* type the code above into a file named app.js 
+* type the code above into a file named app.js
 * create a `public` subdirectory
 * add a simple `index.html` file in `public`
 
 Now test that all your node packages are installed and working:
 
-```{js}
+```js
 node app.js
 ```
 
 (typing that command will run your server and start it on port 1337.  It will keep running until you type ctl-C
 
-You should be able to see it in action by starting up a browser and typing 
+You should be able to see it in action by starting up a browser and typing
 
-```{js}
+```js
 http://localhost:1337
 ```
 
@@ -622,7 +622,7 @@ Please note that if you are working on a lab computer **from home** that `http:/
 Use the `public` sub-directory that was cloned with your repository for the following tutorial:
 <http://www.revillweb.com/tutorials/angularjs-in-30-minutes-angularjs-tutorial/>.
 
-Everything is case-sensitive so pay close attention.  Do not be afraid to open the browser's console to help with debugging.  I recommend using the same version of angularJS that the author used to develop the tutorial:  I checked that the tutorial still works (Fall 2017) when using the following line in `index.html`: 
+Everything is case-sensitive so pay close attention.  Do not be afraid to open the browser's console to help with debugging.  I recommend using the same version of angularJS that the author used to develop the tutorial:  I checked that the tutorial still works (Fall 2017) when using the following line in `index.html`:
 
 `<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js" type="text/javascript"></script>`
 
@@ -660,11 +660,11 @@ Let's expand our web server so it does two things:
 * Provide files from the 'public' directory
 * Generates a web-page asking the user if they would like some buttons
 
-The default behavior will be to provide files, however if the requested URL look like '/buttons' then we will politely ask the user if they would like *some buttons*. 
+The default behavior will be to provide files, however if the requested URL look like '/buttons' then we will politely ask the user if they would like *some buttons*.
 
 Here's the basic setup:
 
-```
+```js
 var express=require('express'),
 app = express(),
 port = process.env.PORT || 1337;
@@ -691,13 +691,13 @@ In your browser enter the address `localhost:1337`.  Since you did not specify a
 
 Notice that each button in the web page has an HTML code chunk that looks a bit like this:
 
-```
+```HTML
 <div style="position:absolute;left:320px;top:100px"><button id="1" >food</button></div>
 ```
 
-In the example below I've replaced explicit values with expressions of the form '#stuff#' 
+In the example below I've replaced explicit values with expressions of the form '#stuff#'
 
-```
+```HTML
 <div style="position:absolute;left:#LEFT#px;top:#TOP#px"><button id="#BUTTON_ID#" >#LABEL#</button></div>
 ```
 
@@ -724,7 +724,7 @@ Be sure to push the appropriate files to your group's repository.
     - [ ] `_name_.show-databases.js` from [back to databases](#back-to-databases)
     - [ ] `_name_.dbf-setups.js` from [making things a big cleaner(#making-things-a-bit-cleaner)
     - [ ] `_name_.dbf-summarize-db-promises.js` from [making things a big cleaner(#making-things-a-bit-cleaner)
- - [ ] As a group 
+ - [ ] As a group
     - [ ] [Angular JS tutorial](http://www.revillweb.com/tutorials/angularjs-in-30-minutes-angularjs-tutorial/)
       - [ ] `express.js` in root directory of project/repository
       - [ ] `public/index.html`
