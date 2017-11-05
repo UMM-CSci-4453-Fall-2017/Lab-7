@@ -39,7 +39,7 @@ connection.query(sql,function(err,rows,fields){ //connection.connect() is run au
     connection.end();
   } else {
      processDBFs(rows); //Gets called once... so it is safe!
-}
+  }
 });
 ```
 We will use the global variables `data` and `processed` to coordinate our asynchronous database queries.  Both of these variables are hash tables.
@@ -48,23 +48,22 @@ We begin the program similarly to what we did in the last lab by setting up the 
 
 Our logic is particularly simple-- if there is an error, report it and close the connection.  Otherwise our query has returned an array of objects which we will deal with in the function `processDBFs` (discussed below).
 
-Let's look at how `processDBFs` works: 
+Let's look at how `processDBFs` works:
 
 ```{js}
 function processDBFs(dbfs){ // Asynchronous row handler
-     for(var index in dbfs){
-       var dbf = dbfs[index].Database;
-       var sql = 'SHOW TABLES IN '+dbf;
-        data[dbf] = Number.POSITIVE_INFINITY; //Exists, but not set.
-        connection.query(sql, (function(dbf){
-          return function(err,tables,fields){
-            if(err){
-              console.log('Error finding tables in dbf '+ dbf);
-              connection.end();
-            } else {
-              processTables(tables,dbf);
-            }
-           };
+    for(var index in dbfs){
+        var dbf = dbfs[index].Database;
+        var sql = 'SHOW TABLES IN '+dbf;
+        data[dbf] = Number.POSITIVE_INFINITY; //Exists, but not set.connection.query(sql, (function(dbf) {
+            return function(err,tables,fields) {
+                if(err) {
+                    console.log('Error finding tables in dbf '+ dbf);
+                    connection.end();
+                } else {
+                    processTables(tables,dbf);
+                }
+            };
         })(dbf));
     } // do NOT put a connection.end() here.  It will kill all queued queries.
 }
@@ -74,19 +73,18 @@ The variable `dbfs` is an array of objects containing database names.  The outer
 For each database we want to execute a query of the form `SHOW TABLES IN DBF`.  Setting up this query should look similar to what we did when we were running SHOW DATABASES-- we create a callback function to be executed when the quey is completed.  But there is one very, important difference that makes everything work.  Look closely at what is being done:
 
 ```{js}
-        connection.query(sql, (function(dbf){
-          return function(err,tables,fields){
-            #function body
-        })(dbf));
-
+connection.query(sql, (function(dbf){
+    return function(err,tables,fields){
+        #function body
+    })(dbf));
 ```
 
 The callback function is **created** inside `processDBFs`.  This chunk of code:
 ```{js}
 (function(dbf){
-          return function(err,tables,fields){
-            #function body
-        })(dbf)
+    return function(err,tables,fields){
+        #function body
+    })(dbf)
 ```
 Executes an anonymous function that takes `dbf` as an argument and returns a function, namely the interior function:
 ```{js}
@@ -130,9 +128,9 @@ This is all fine and dandy... but we still need to print out actual results and 
 
 ```{js}
 function processDescription(desc,table,dbf){
-  data[dbf]--; //Processed one table
-  if(processed[dbf]==0){
-    processed[dbf] = 1
+  data[dbf]-- ; //Processed one table
+  if(processed[dbf] == 0){
+    processed[dbf] = 1;
     console.log('---|'+dbf+'>');
   }
   console.log('.....|'+dbf+'.'+table+'>');
@@ -185,9 +183,9 @@ Remember that a Promise is a placeholder for a value-- a value that is the end r
 We can also **chain** promises together using `.then()`.  This allows the programmer to introduce causal steps and deal with dependency issues.  This will make more sense after the examples below.  Try this short one first:
 
 ```{js}
-Promise=require('bluebird');
+Promise = require('bluebird');
 
-var promise= new Promise(function(resolve,reject){
+var promise = new Promise(function(resolve,reject){
   console.log('Inside resolver function');
   resolve();
 });
@@ -209,7 +207,7 @@ Inside onFulfilled handler
 So what is happening?  Bluebird is one of several promise APIs.  Somewhat similar to an `import` command in Java, we load it using `require`:  
 
 ```{js}
-Promise=require('bluebird');
+Promise = require('bluebird');
 ```
 
 The variable `Promise` exposes all the functionality of the bluebird API (we could have called it whatever we wanted).  
@@ -263,27 +261,27 @@ Let's review our original `showDatabases.js` program:
 ```{js}
 var credentials = require('./credentials.json');
 
-var mysql=require("mysql");
+var mysql = require("mysql");
 
-credentials.host="ids"
+credentials.host = "ids";
 var connection = mysql.createConnection(credentials);
 
 connection.connect(function(err){
   if(err){
-    console.log("Problems with MySQL: "+err);
+    console.log("Problems with MySQL: " + err);
   } else {
     console.log("Connected to Database.");
   }
 });
 
-connection.query('SHOW DATABASES',function(err,rows,fields){
+connection.query('SHOW DATABASES', function(err,rows,fields){
   if(err){
     console.log('Error looking up databases');
   } else {
-    console.log('Returned values were ',rows);
-}
+    console.log('Returned values were ', rows);
+  }
 });
-connection.end()
+connection.end();
 console.log("All done now.");
 ```
 
@@ -295,22 +293,22 @@ We are going to start by modifying this example to make use `connection.pool()`s
 
 ```{js}
 var credentials = require('./credentials.json');
-var mysql=require("mysql");
-credentials.host="ids"
-var pool=mysql.createPool(credentials)
-pool.getConnection(function(err,conn){
+var mysql = require("mysql");
+credentials.host="ids";
+var pool = mysql.createPool(credentials);
+pool.getConnection(function(err, conn){
   if(!err){
-      conn.query('SHOW DATABASES',function(err,rows,fields){
+      conn.query('SHOW DATABASES', function(err,rows,fields){
           if(err){
             console.log('Error looking up databases');
           } else {
             console.log('Returned values were ',rows);
           }
-          conn.release()
-          pool.end()
-        });
-  } else{
-      console.log('Error making connection')
+          conn.release();
+          pool.end();
+      });
+  } else {
+      console.log('Error making connection');
   }
 });
 console.log("All done now.");
@@ -327,30 +325,30 @@ Now we're going to add in promises.  There are some new ideas floating around in
 ```{js}
 var credentials = require('./credentials.json');
 
-var mysql=require("mysql");
+var mysql = require("mysql");
 var Promise = require('bluebird');
 var using = Promise.using;
 Promise.promisifyAll(require("mysql/lib/Connection").prototype);
 Promise.promisifyAll(require("mysql/lib/Pool").prototype);
 
-credentials.host="ids"
-var pool=mysql.createPool(credentials); //Setup the pool using our credentials.
+credentials.host = "ids";
+var pool = mysql.createPool(credentials); //Setup the pool using our credentials.
 
-var getConnection=function(){
+var getConnection = function(){
     return pool.getConnectionAsync().disposer(
         function(connection){return connection.release();}
-          );
+    );
 };
 
-var query=function(command){
+var query = function(command){
     return using(getConnection(),function(connection){
        return connection.queryAsync(command);
     });
 };
 
 
-sql="SHOW DATABASES"
-var result=query(mysql.format(sql)) //result is a promise
+sql = "SHOW DATABASES";
+var result = query(mysql.format(sql)); //result is a promise
 result.then(function(dbfs,err){console.log(dbfs)}).then(function(){pool.end()});
 ```
 
@@ -368,12 +366,12 @@ The first line is clear:  We are using the promise library known as `bluebird`. 
 
 Things are a bit nicer now:
 ```{js}
-var pool=mysql.createPool(credentials); //Setup the pool using our credentials.
+var pool = mysql.createPool(credentials); //Setup the pool using our credentials.
 
-var getConnection=function(){
+var getConnection = function(){
     return pool.getConnectionAsync().disposer(
         function(connection){return connection.release();}
-          );
+    );
 };
 ```
 
@@ -394,7 +392,7 @@ The `query()` method is using `using` (which is discussed in that last link I pr
 We are finally in a position to understand the *meat of the function*:
 
 ```{js}
-var result=query(mysql.format(sql)) //result is a promise
+var result=query(mysql.format(sql)); //result is a promise
 result.then(function(dbfs,err){console.log(dbfs)}).then(function(){pool.end()});
 ```
 
@@ -416,23 +414,24 @@ var using = Promise.using;
 Promise.promisifyAll(require("mysql/lib/Connection").prototype);
 Promise.promisifyAll(require("mysql/lib/Pool").prototype);
 
-credentials.host="ids"
+credentials.host = "ids";
 var connection = mysql.createConnection(credentials);
 
-var pool=mysql.createPool(credentials); //Setup the pool using our credentials.
+var pool = mysql.createPool(credentials); //Setup the pool using our credentials.
 
-var getConnection=function(){
+var getConnection = function(){
   return pool.getConnectionAsync().disposer(
     function(connection){return connection.release();}
   );
 };
-var query=function(command){ //SQL comes in and a promise comes out.
+
+var query = function(command){ //SQL comes in and a promise comes out.
   return using(getConnection(),function(connection){
     return connection.queryAsync(command);
   });
 };
 
-var endPool=function(){
+var endPool = function(){
    pool.end(function(err){});
 }
 
@@ -445,20 +444,20 @@ We are defining a module.  Node.js allows you to use the `require` function to i
 With that functionality wrapped up in a module the remaining code necessary to implement "SHOW DATABASES" is fairly short.  I have added TWO complications in preparation for the final version of the program however, so read carefully:
 
 ```{js}
-mysql=require('mysql');
-dbf=require('./dbf-setup.js');
+mysql = require('mysql');
+dbf = require('./dbf-setup.js');
 
-var getDatabases=function(){//Returns a promise that can take a handler ready to process the results
+var getDatabases = function(){//Returns a promise that can take a handler ready to process the results
   var sql = "SHOW DATABASES";
   return dbf.query(mysql.format(sql)); //Return a promise
 }
 
-var processDBFs=function(queryResults){
+var processDBFs = function(queryResults){
    dbfs=queryResults;
    return(dbfs);
 }
 
-dbf=getDatabases()
+dbf = getDatabases()
 .then(processDBFs)
 .then(function(results){console.log(results)})
 .then(dbf.releaseDBF);
@@ -482,49 +481,49 @@ For this solution we are going to take advantage of **[prepared statements ](htt
 Here is my solution involving Promises and prepared statements.  My Promise-Fu is still quite weak, so there are, undoubtedly, ways to do this even more cleanly.  Youl should all type this program in yourselves:
 
 ```{js}
-Promise=require('bluebird')
-mysql=require('mysql');
-DBF=require('./dbf-setup.js');
+Promise = require('bluebird');
+mysql = require('mysql');
+DBF = require('./dbf-setup.js');
 
-var getDatabases=function(){//Returns a promise that can take a handler ready to process the results
+var getDatabases = function(){//Returns a promise that can take a handler ready to process the results
   var sql = "SHOW DATABASES";
   return DBF.query(mysql.format(sql)); //Return a promise
 }
 
-var processDBFs=function(queryResults){ //Returns a promise that forces ALL dbfPromises to resolve before .thening()
+var processDBFs = function(queryResults){ //Returns a promise that forces ALL dbfPromises to resolve before .thening()
    var dbfs=queryResults;
-   return(Promise.all(dbfs.map(dbfToPromise)).then(processTables))
+   return(Promise.all(dbfs.map(dbfToPromise)).then(processTables));
 }
 
-var processTables=function(results){ //Returns a promise that forces ALL table description Promises to resolve before .thening()
-  var descriptionPromises=results.map(tableAndDbfToPromise);
-  var allTables=Promise.all(descriptionPromises).then(function(results){return(results)});
+var processTables = function(results){ //Returns a promise that forces ALL table description Promises to resolve before .thening()
+  var descriptionPromises = results.map(tableAndDbfToPromise);
+  var allTables = Promise.all(descriptionPromises).then(function(results){return(results)});
   return(allTables);
 }
 
-//Takes an object (as returned by showDatabases) and returns a promise that resolves 
+//Takes an object (as returned by showDatabases) and returns a promise that resolves
 // to an array of objects containing table names for the dbf in dbfObj
-var dbfToPromise=function(dbfObj){ 
-  var dbf=dbfObj.Database
+var dbfToPromise = function(dbfObj){
+  var dbf = dbfObj.Database;
   var sql = mysql.format("SHOW TABLES IN ??",dbf);
-  var queryPromise=DBF.query(sql)
-  queryPromise=queryPromise.then(function(results){return({table:results,dbf:dbf})});
+  var queryPromise = DBF.query(sql);
+  queryPromise = queryPromise.then(function(results){return({table:results,dbf:dbf})});
   return(queryPromise);
 }
 
-//Takes an object (as returned by showDatabases) and returns a promise that resolves 
+//Takes an object (as returned by showDatabases) and returns a promise that resolves
 // to an array of objects containing table descriptions.  
 // This function creates helper functions:
 //     describeTable()
 //  which contains its own helper function printer(), for writing the output to console
-var tableAndDbfToPromise=function(obj){
-   var dbf=obj.dbf;
-   var tableObj=obj.table;
+var tableAndDbfToPromise = function(obj){
+   var dbf = obj.dbf;
+   var tableObj = obj.table;
    var key = "Tables_in_"+dbf;
 
-   var tables=tableObj.map(function(val){return(val[key])})
+   var tables = tableObj.map(function(val){return(val[key])});
 
-   var describeTable=function(val,index){
+   var describeTable = function(val,index){
        var table=dbf+"."+val;
        var printer=function(results){
           var desc=results;
@@ -535,12 +534,12 @@ var tableAndDbfToPromise=function(obj){
           })
        }
 
-       var describeSQL=mysql.format("DESCRIBE ??",table);
-       var promise=DBF.query(describeSQL).then(printer);
+       var describeSQL = mysql.format("DESCRIBE ??",table);
+       var promise = DBF.query(describeSQL).then(printer);
        return(promise);
    }
    var describePromises = tables.map(describeTable);
-   return(Promise.all(describePromises))
+   return(Promise.all(describePromises));
 }
 
 var dbf=getDatabases()
@@ -587,7 +586,7 @@ Instead of diving head-first into the problem we will start simply and work our 
 We will start by using a node.js package known as `express.js` to create a very simple web server for our web pages (read a few paragraphs ahead **before** running this):
 
 ```{js}
-var express=require('express'),
+var express = require('express'),
 app = express(),
 port = process.env.PORT || 1337;
 
@@ -595,9 +594,9 @@ app.use(express.static(__dirname + '/public'));
 app.listen(port);
 ```
 
-The web-server is expecting our HTML files to be in the `public` sub directory.  Go ahead and 
+The web-server is expecting our HTML files to be in the `public` sub directory.  Go ahead and
 
-* type the code above into a file named app.js 
+* type the code above into a file named app.js
 * create a `public` subdirectory
 * add a simple `index.html` file in `public`
 
@@ -609,7 +608,7 @@ node app.js
 
 (typing that command will run your server and start it on port 1337.  It will keep running until you type ctl-C
 
-You should be able to see it in action by starting up a browser and typing 
+You should be able to see it in action by starting up a browser and typing
 
 ```{js}
 http://localhost:1337
@@ -622,7 +621,7 @@ Please note that if you are working on a lab computer **from home** that `http:/
 Use the `public` sub-directory that was cloned with your repository for the following tutorial:
 <http://www.revillweb.com/tutorials/angularjs-in-30-minutes-angularjs-tutorial/>.
 
-Everything is case-sensitive so pay close attention.  Do not be afraid to open the browser's console to help with debugging.  I recommend using the same version of angularJS that the author used to develop the tutorial:  I checked that the tutorial still works (Fall 2017) when using the following line in `index.html`: 
+Everything is case-sensitive so pay close attention.  Do not be afraid to open the browser's console to help with debugging.  I recommend using the same version of angularJS that the author used to develop the tutorial:  I checked that the tutorial still works (Fall 2017) when using the following line in `index.html`:
 
 `<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js" type="text/javascript"></script>`
 
@@ -660,7 +659,7 @@ Let's expand our web server so it does two things:
 * Provide files from the 'public' directory
 * Generates a web-page asking the user if they would like some buttons
 
-The default behavior will be to provide files, however if the requested URL look like '/buttons' then we will politely ask the user if they would like *some buttons*. 
+The default behavior will be to provide files, however if the requested URL look like '/buttons' then we will politely ask the user if they would like *some buttons*.
 
 Here's the basic setup:
 
@@ -695,7 +694,7 @@ Notice that each button in the web page has an HTML code chunk that looks a bit 
 <div style="position:absolute;left:320px;top:100px"><button id="1" >food</button></div>
 ```
 
-In the example below I've replaced explicit values with expressions of the form '#stuff#' 
+In the example below I've replaced explicit values with expressions of the form '#stuff#'
 
 ```
 <div style="position:absolute;left:#LEFT#px;top:#TOP#px"><button id="#BUTTON_ID#" >#LABEL#</button></div>
@@ -724,7 +723,7 @@ Be sure to push the appropriate files to your group's repository.
     - [ ] `_name_.show-databases.js` from [back to databases](#back-to-databases)
     - [ ] `_name_.dbf-setups.js` from [making things a big cleaner(#making-things-a-bit-cleaner)
     - [ ] `_name_.dbf-summarize-db-promises.js` from [making things a big cleaner(#making-things-a-bit-cleaner)
- - [ ] As a group 
+ - [ ] As a group
     - [ ] [Angular JS tutorial](http://www.revillweb.com/tutorials/angularjs-in-30-minutes-angularjs-tutorial/)
       - [ ] `express.js` in root directory of project/repository
       - [ ] `public/index.html`
